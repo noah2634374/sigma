@@ -15,8 +15,14 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+      - name: Fetch Gradle wrapper from official template
+        run: |
+          curl -sL https://raw.githubusercontent.com/MeteorDevelopment/meteor-addon-template/master/gradlew -o gradlew
+          curl -sL https://raw.githubusercontent.com/MeteorDevelopment/meteor-addon-template/master/gradlew.bat -o gradlew.bat
+          mkdir -p gradle/wrapper
+          curl -sL https://raw.githubusercontent.com/MeteorDevelopment/meteor-addon-template/master/gradle/wrapper/gradle-wrapper.properties -o gradle/wrapper/gradle-wrapper.properties
+          curl -sL https://raw.githubusercontent.com/MeteorDevelopment/meteor-addon-template/master/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
+          chmod +x ./gradlew
 
       - name: Build
         run: ./gradlew build
