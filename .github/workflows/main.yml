@@ -9,11 +9,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 25
 
       - name: Fetch build setup from official template
         run: |
@@ -28,16 +28,6 @@ jobs:
           curl -sL $BASE/gradle.properties -o gradle.properties
           curl -sL $BASE/gradle/libs.versions.toml -o gradle/libs.versions.toml
           chmod +x ./gradlew
-
-      - name: Force Java 21 bytecode
-        run: |
-          mkdir -p gradle
-          cat >> build.gradle.kts << 'EOF'
-
-          tasks.withType<JavaCompile>().configureEach {
-              options.release.set(21)
-          }
-          EOF
 
       - name: Build
         run: ./gradlew build
