@@ -1,7 +1,6 @@
 package com.example.spawnerutils.modules;
 
 import com.example.spawnerutils.SpawnerUtilsAddon;
-import meteordevelopment.meteorclient.eventbus.EventHandler;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.BoolSetting;
@@ -11,24 +10,19 @@ import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.ChestBlockEntity;
-import net.minecraft.block.entity.EnderChestBlockEntity;
-import net.minecraft.block.entity.LootableContainerBlockEntity;
-import net.minecraft.block.entity.MobSpawnerBlockEntity;
-import net.minecraft.block.entity.ShulkerBoxBlockEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.chunk.WorldChunk;
+import meteordevelopment.orbit.EventHandler;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.Container;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
+import net.minecraft.world.level.chunk.LevelChunk;
 
 import java.util.Map;
 
 /**
- * Block-Entity-Debugger.
- *
- * Block-Entities (Kisten, Spawner, Shulker, Öfen, Schilder ...) werden vom
- * Server unabhängig davon zum Client geschickt, ob sie hinter Blöcken liegen.
- * Dadurch sieht dieses Modul automatisch auch Block-Entities, die tief unter
- * dem Deepslate-Layer verborgen sind – es braucht dafür kein zusätzliches X-Ray.
+ * Block-Entity-Debugger. Block-Entities werden vom Server unabhaengig davon
+ * zum Client geschickt, ob sie hinter Bloecken liegen. Dadurch sieht dieses
+ * Modul automatisch auch Block-Entities tief unter dem Deepslate-Layer.
  */
 public class BlockEntityDebug extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -43,19 +37,19 @@ public class BlockEntityDebug extends Module {
 
     private final Setting<Boolean> storageOnly = sgGeneral.add(new BoolSetting.Builder()
         .name("storage-only")
-        .description("Nur Behälter (Kisten, Shulker, Barrel, Öfen ...) anzeigen.")
+        .description("Nur Behaelter (Kisten, Shulker, Barrel, Oefen ...) anzeigen.")
         .defaultValue(false)
         .build());
 
     private final Setting<Boolean> belowDeepslateOnly = sgGeneral.add(new BoolSetting.Builder()
         .name("below-deepslate-only")
-        .description("Nur Block-Entities unterhalb der eingestellten Höhe anzeigen – nützlich, um gezielt unter den Deepslate-Layer zu schauen.")
+        .description("Nur Block-Entities unterhalb der eingestellten Hoehe anzeigen.")
         .defaultValue(false)
         .build());
 
     private final Setting<Integer> belowY = sgGeneral.add(new IntSetting.Builder()
         .name("below-y")
-        .description("Höhe, unter der gefiltert wird (Deepslate beginnt etwa bei Y 0 bis 8).")
+        .description("Hoehe, unter der gefiltert wird (Deepslate beginnt etwa bei Y 0 bis 8).")
         .defaultValue(0)
         .sliderRange(-64, 64)
         .visible(belowDeepslateOnly::get)
@@ -69,19 +63,19 @@ public class BlockEntityDebug extends Module {
 
     private final Setting<SettingColor> storageColor = sgRender.add(new ColorSetting.Builder()
         .name("storage-color")
-        .description("Farbe für Behälter.")
+        .description("Farbe fuer Behaelter.")
         .defaultValue(new SettingColor(255, 200, 0, 60))
         .build());
 
     private final Setting<SettingColor> spawnerColor = sgRender.add(new ColorSetting.Builder()
         .name("spawner-color")
-        .description("Farbe für Spawner.")
+        .description("Farbe fuer Spawner.")
         .defaultValue(new SettingColor(255, 0, 0, 60))
         .build());
 
     private final Setting<SettingColor> otherColor = sgRender.add(new ColorSetting.Builder()
         .name("other-color")
-        .description("Farbe für alle übrigen Block-Entities.")
+        .description("Farbe fuer alle uebrigen Block-Entities.")
         .defaultValue(new SettingColor(0, 200, 255, 50))
         .build());
 
@@ -98,14 +92,14 @@ public class BlockEntityDebug extends Module {
     }
 
     private int countAll() {
-        if (mc.world == null || mc.player == null) return 0;
+        if (mc.level == null || mc.player == null) return 0;
         int total = 0;
-        int pcx = mc.player.getChunkPos().x;
-        int pcz = mc.player.getChunkPos().z;
+        int pcx = mc.player.blockPosition().getX() >> 4;
+        int pcz = mc.player.blockPosition().getZ() >> 4;
         int r = chunkRange.get();
         for (int cx = pcx - r; cx <= pcx + r; cx++) {
             for (int cz = pcz - r; cz <= pcz + r; cz++) {
-                WorldChunk chunk = mc.world.getChunk(cx, cz);
+                LevelChunk chunk = mc.level.getChunk(cx, cz);
                 if (chunk == null) continue;
                 total += chunk.getBlockEntities().size();
             }
@@ -115,15 +109,15 @@ public class BlockEntityDebug extends Module {
 
     @EventHandler
     private void onRender(Render3DEvent event) {
-        if (mc.world == null || mc.player == null) return;
+        if (mc.level == null || mc.player == null) return;
 
-        int pcx = mc.player.getChunkPos().x;
-        int pcz = mc.player.getChunkPos().z;
+        int pcx = mc.player.blockPosition().getX() >> 4;
+        int pcz = mc.player.blockPosition().getZ() >> 4;
         int r = chunkRange.get();
 
         for (int cx = pcx - r; cx <= pcx + r; cx++) {
             for (int cz = pcz - r; cz <= pcz + r; cz++) {
-                WorldChunk chunk = mc.world.getChunk(cx, cz);
+                LevelChunk chunk = mc.level.getChunk(cx, cz);
                 if (chunk == null) continue;
 
                 for (Map.Entry<BlockPos, BlockEntity> entry : chunk.getBlockEntities().entrySet()) {
@@ -132,8 +126,8 @@ public class BlockEntityDebug extends Module {
 
                     if (belowDeepslateOnly.get() && pos.getY() >= belowY.get()) continue;
 
-                    boolean storage = isStorage(be);
-                    boolean spawner = be instanceof MobSpawnerBlockEntity;
+                    boolean storage = be instanceof Container;
+                    boolean spawner = be instanceof SpawnerBlockEntity;
 
                     if (storageOnly.get() && !storage) continue;
 
@@ -149,12 +143,5 @@ public class BlockEntityDebug extends Module {
                 }
             }
         }
-    }
-
-    private boolean isStorage(BlockEntity be) {
-        return be instanceof LootableContainerBlockEntity
-            || be instanceof ChestBlockEntity
-            || be instanceof ShulkerBoxBlockEntity
-            || be instanceof EnderChestBlockEntity;
     }
 }

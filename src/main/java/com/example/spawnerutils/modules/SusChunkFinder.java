@@ -1,7 +1,6 @@
 package com.example.spawnerutils.modules;
 
 import com.example.spawnerutils.SpawnerUtilsAddon;
-import meteordevelopment.meteorclient.eventbus.EventHandler;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
@@ -12,11 +11,11 @@ import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.chunk.WorldChunk;
+import meteordevelopment.orbit.EventHandler;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.chunk.LevelChunk;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,12 +23,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Sucht geladene Chunks nach Amethyst-Clustern ab.
- * Amethyst, der oberhalb der typischen Geoden-Generierung gefunden wird,
- * wird als "verdächtig" (sus) markiert – ein Hinweis auf von Spielern
- * gebaute Farmen oder versteckte Stashes.
- */
 public class SusChunkFinder extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgRender = settings.createGroup("Render");
@@ -43,64 +36,63 @@ public class SusChunkFinder extends Module {
 
     private final Setting<Integer> chunksPerTick = sgGeneral.add(new IntSetting.Builder()
         .name("chunks-per-tick")
-        .description("Wie viele neue Chunks pro Tick gescannt werden. Höher = schneller, aber mehr Last.")
+        .description("Wie viele neue Chunks pro Tick gescannt werden.")
         .defaultValue(2)
         .min(1).sliderRange(1, 8)
         .build());
 
     private final Setting<Integer> minY = sgGeneral.add(new IntSetting.Builder()
         .name("min-y")
-        .description("Unterste Y-Höhe, die gescannt wird.")
+        .description("Unterste Y-Hoehe, die gescannt wird.")
         .defaultValue(-64)
         .sliderRange(-64, 320)
         .build());
 
     private final Setting<Integer> maxY = sgGeneral.add(new IntSetting.Builder()
         .name("max-y")
-        .description("Oberste Y-Höhe, die gescannt wird.")
+        .description("Oberste Y-Hoehe, die gescannt wird.")
         .defaultValue(120)
         .sliderRange(-64, 320)
         .build());
 
     private final Setting<Integer> susAboveY = sgGeneral.add(new IntSetting.Builder()
         .name("sus-above-y")
-        .description("Amethyst oberhalb dieser Höhe gilt als verdächtig (Geoden generieren normalerweise tiefer).")
+        .description("Amethyst oberhalb dieser Hoehe gilt als verdaechtig.")
         .defaultValue(30)
         .sliderRange(-64, 320)
         .build());
 
     private final Setting<Boolean> susOnly = sgGeneral.add(new BoolSetting.Builder()
         .name("sus-only")
-        .description("Nur verdächtigen Amethyst rendern und melden.")
+        .description("Nur verdaechtigen Amethyst rendern und melden.")
         .defaultValue(false)
         .build());
 
     private final Setting<Boolean> notify = sgGeneral.add(new BoolSetting.Builder()
         .name("chat-notify")
-        .description("Im Chat melden, wenn ein verdächtiger Chunk gefunden wird.")
+        .description("Im Chat melden, wenn ein verdaechtiger Chunk gefunden wird.")
         .defaultValue(true)
         .build());
 
     private final Setting<SettingColor> normalColor = sgRender.add(new ColorSetting.Builder()
         .name("normal-color")
-        .description("Farbe für normalen Amethyst.")
+        .description("Farbe fuer normalen Amethyst.")
         .defaultValue(new SettingColor(180, 100, 255, 120))
         .build());
 
     private final Setting<SettingColor> susColor = sgRender.add(new ColorSetting.Builder()
         .name("sus-color")
-        .description("Farbe für verdächtigen Amethyst.")
+        .description("Farbe fuer verdaechtigen Amethyst.")
         .defaultValue(new SettingColor(255, 60, 60, 160))
         .build());
 
-    // Bereits gescannte Chunks (als long-Key) und gefundene Amethyst-Positionen.
     private final Set<Long> scanned = new HashSet<>();
-    private final Map<BlockPos, Boolean> found = new HashMap<>(); // pos -> sus?
+    private final Map<BlockPos, Boolean> found = new HashMap<>();
     private final Set<Long> reportedChunks = new HashSet<>();
 
     public SusChunkFinder() {
         super(SpawnerUtilsAddon.CATEGORY, "sus-chunk-finder",
-            "Scannt Chunks nach Amethyst-Clustern und markiert verdächtige Vorkommen.");
+            "Scannt Chunks nach Amethyst-Clustern und markiert verdaechtige Vorkommen.");
     }
 
     @Override
@@ -121,19 +113,19 @@ public class SusChunkFinder extends Module {
 
     @EventHandler
     private void onTick(TickEvent.Pre event) {
-        if (mc.world == null || mc.player == null) return;
+        if (mc.level == null || mc.player == null) return;
 
-        int pcx = mc.player.getChunkPos().x;
-        int pcz = mc.player.getChunkPos().z;
+        int pcx = mc.player.blockPosition().getX() >> 4;
+        int pcz = mc.player.blockPosition().getZ() >> 4;
         int r = chunkRange.get();
         int budget = chunksPerTick.get();
 
         for (int cx = pcx - r; cx <= pcx + r && budget > 0; cx++) {
             for (int cz = pcz - r; cz <= pcz + r && budget > 0; cz++) {
-                long key = ChunkPos.toLong(cx, cz);
+                long key = (((long) cx) << 32) | (cz & 0xffffffffL);
                 if (scanned.contains(key)) continue;
 
-                WorldChunk chunk = mc.world.getChunk(cx, cz);
+                LevelChunk chunk = mc.level.getChunk(cx, cz);
                 if (chunk == null) continue;
 
                 scanChunk(chunk, cx, cz);
@@ -143,11 +135,11 @@ public class SusChunkFinder extends Module {
         }
     }
 
-    private void scanChunk(WorldChunk chunk, int cx, int cz) {
+    private void scanChunk(LevelChunk chunk, int cx, int cz) {
         int lo = Math.min(minY.get(), maxY.get());
         int hi = Math.max(minY.get(), maxY.get());
 
-        BlockPos.Mutable pos = new BlockPos.Mutable();
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         boolean susInThisChunk = false;
         int count = 0;
 
@@ -162,7 +154,7 @@ public class SusChunkFinder extends Module {
                     boolean sus = y > susAboveY.get();
                     if (susOnly.get() && !sus) continue;
 
-                    found.put(pos.toImmutable(), sus);
+                    found.put(pos.immutable(), sus);
                     count++;
                     if (sus) susInThisChunk = true;
                 }
@@ -170,9 +162,9 @@ public class SusChunkFinder extends Module {
         }
 
         if (notify.get() && susInThisChunk) {
-            long key = ChunkPos.toLong(cx, cz);
+            long key = (((long) cx) << 32) | (cz & 0xffffffffL);
             if (reportedChunks.add(key)) {
-                info("Verdächtiger Amethyst in Chunk [%d, %d] (Mitte: x=%d z=%d, %d Blöcke).",
+                info("Verdaechtiger Amethyst in Chunk [%d, %d] (Mitte: x=%d z=%d, %d Bloecke).",
                     cx, cz, (cx << 4) + 8, (cz << 4) + 8, count);
             }
         }
@@ -188,17 +180,15 @@ public class SusChunkFinder extends Module {
 
     @EventHandler
     private void onRender(Render3DEvent event) {
-        if (found.isEmpty()) return;
+        if (found.isEmpty() || mc.level == null) return;
 
-        // Aufräumen: Positionen entfernen, deren Block nicht mehr existiert.
         Iterator<Map.Entry<BlockPos, Boolean>> it = found.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<BlockPos, Boolean> entry = it.next();
             BlockPos pos = entry.getKey();
             boolean sus = entry.getValue();
 
-            if (mc.world != null && mc.world.isChunkLoaded(pos.getX() >> 4, pos.getZ() >> 4)
-                && !isAmethyst(mc.world.getBlockState(pos).getBlock())) {
+            if (mc.level.isLoaded(pos) && !isAmethyst(mc.level.getBlockState(pos).getBlock())) {
                 it.remove();
                 continue;
             }
