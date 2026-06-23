@@ -28,9 +28,10 @@ jobs:
           curl -sL $BASE/gradle.properties -o gradle.properties
           curl -sL $BASE/gradle/libs.versions.toml -o gradle/libs.versions.toml
           chmod +x ./gradlew
-
       - name: Build
         run: ./gradlew build
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_21_X64 }}
 
       - name: Upload JAR
         uses: actions/upload-artifact@v4
