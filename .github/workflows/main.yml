@@ -15,13 +15,18 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Fetch Gradle wrapper from official template
+      - name: Fetch build setup from official template
         run: |
-          curl -sL https://raw.githubusercontent.com/MeteorDevelopment/meteor-addon-template/master/gradlew -o gradlew
-          curl -sL https://raw.githubusercontent.com/MeteorDevelopment/meteor-addon-template/master/gradlew.bat -o gradlew.bat
+          BASE=https://raw.githubusercontent.com/MeteorDevelopment/meteor-addon-template/master
+          curl -sL $BASE/gradlew -o gradlew
+          curl -sL $BASE/gradlew.bat -o gradlew.bat
           mkdir -p gradle/wrapper
-          curl -sL https://raw.githubusercontent.com/MeteorDevelopment/meteor-addon-template/master/gradle/wrapper/gradle-wrapper.properties -o gradle/wrapper/gradle-wrapper.properties
-          curl -sL https://raw.githubusercontent.com/MeteorDevelopment/meteor-addon-template/master/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
+          curl -sL $BASE/gradle/wrapper/gradle-wrapper.properties -o gradle/wrapper/gradle-wrapper.properties
+          curl -sL $BASE/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
+          curl -sL $BASE/build.gradle.kts -o build.gradle.kts
+          curl -sL $BASE/settings.gradle.kts -o settings.gradle.kts
+          curl -sL $BASE/gradle.properties -o gradle.properties
+          curl -sL $BASE/gradle/libs.versions.toml -o gradle/libs.versions.toml
           chmod +x ./gradlew
 
       - name: Build
