@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "spawnerutils",
+  "version": "${version}",
+
+  "name": "SpawnerUtils",
+  "description": "Meteor Client Addon: Freecam-Spawner-Breaker, Spawner-ESP, Sus-Chunk-Finder (Amethyst) und Block-Entity-Debug.",
+  "authors": [
+    "DeinName"
+  ],
+  "contact": {
+    "repo": "https://github.com/DeinName/spawnerutils"
+  },
+
+  "license": "MIT",
+  "icon": "assets/spawnerutils/icon.png",
+
+  "environment": "client",
+  "entrypoints": {
+    "meteor": [
+      "com.example.spawnerutils.SpawnerUtilsAddon"
+    ]
+  },
+  "mixins": [
+    "spawnerutils.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.17.0",
+    "minecraft": ">=1.21.11",
+    "java": ">=21",
+    "meteor-client": "*"
+  }
+}
